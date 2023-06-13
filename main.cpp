@@ -2,6 +2,8 @@
 #include <vector>
 #include <queue>
 #include <set>
+#include <chrono>
+#include <fstream>
 
 //  инициализирую начальную точку и конечную
 int start, end;
@@ -146,6 +148,74 @@ void FloydWarshall(std::vector<std::vector<int>> &init_information) {
     }
 }
 
+uint64_t analyse(const std::function<void(std::vector<std::vector<int>>)>&  algo,
+                 int range_og_graph, const std::string& type_of_graph) {
+    uint64_t sum = 0;
+
+    for (int i = 0; i < number_of_launches; ++i) {
+        if (type_of_graph == "binary") {
+            randomChars(reference, 2);
+        } else {
+            randomChars(reference, 4);
+        }
+
+        auto time_start = std::chrono::high_resolution_clock::now();
+        algo(reference, reference_size, example, indicator);
+        auto time_elapsed = std::chrono::high_resolution_clock::now();
+        int64_t nanoseconds =
+                std::chrono::duration_cast<std::chrono::nanoseconds>(time_elapsed - time_start).count();
+        sum += nanoseconds;
+    }
+    sum /= number_of_launches;
+    return sum;
+}
+
+void printAndAnalyse(
+        std::vector<std::pair<std::string, std::function<void(std::vector<std::vector<int>> &)>>> &
+        searchers) {
+// директория в которую пишу результаты
+    std::string directory = "/Users/bogdanlukancuk/Desktop/KDZ-3/";
+// открытие и запись в файл для маленьких диапазонов сортировки
+    std::ofstream file(directory + "data" + ".csv");
+    file << "algo,graph_type,vertex_size,time\n";
+
+// прохожу по всем видам алгоритмов в цикле
+    for (const auto& algo: searchers) {
+// завожу цикл для заполнения эталлонного массива (reference) значениями
+        for (int marker = 0; marker < 3; marker++) {
+// маркер типа массива
+            std::string type_of_graph;
+            int vertex_size;
+            switch (marker) {
+// генерирую массив из 100000 символов  в бинарном алфавите
+                case 0: {
+// случайныe значения в бинарном алфавите 10000 символов
+                    type_of_graph = "binary";
+                    break;
+                }
+                case 1: {
+// случайныe значения в бинарном алфавите 100000 символов
+                    type_of_graph = "binary";
+                    break;
+                }
+// генерирую массив из 100000 символов  в небинарном алфавите
+                case 2: {
+// случайныe значения в небинарном алфавите 10000 символов
+                    type_of_graph = "nonbinary";
+                    break;
+                }
+            }
+
+// функция analyse выдает уредненное значение на заданном диапазоне
+            for (int range_og_graph = 10; range_og_graph <= 1010; range_og_graph += 50) {
+                uint64_t answer = analyse(algo.second, range_og_graph, type_of_graph);
+                file << algo.first << ',' << type_of_graph << ','
+                     << range_og_graph << ',' << answer << '\n';
+            }
+        }
+    }
+    file.close();
+}
 
 int main() {
     srand(time(nullptr));
@@ -160,7 +230,7 @@ int main() {
 
     // передаю инициализированнный массив функций в функцию, которая анализирует каждую функцию и
     // записывает резултат в файл
-    // printAndAnalyse(searchers);
+    printAndAnalyse(searchers);
 
     return 0;
 }
