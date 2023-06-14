@@ -4,9 +4,11 @@
 #include <set>
 #include <chrono>
 #include <fstream>
+#include <map>
 
 //  инициализирую начальную точку и конечную
-int start, end;
+int starter = 0, end;
+int number_of_launches = 5;
 
 
 void dfs(int v, std::vector<std::vector<int>> &graph_jjj, std::vector<bool> &used) {
@@ -18,20 +20,23 @@ void dfs(int v, std::vector<std::vector<int>> &graph_jjj, std::vector<bool> &use
     }
 }
 
-void dijkstra(std::vector<std::vector<int>> &init_information) {
-    int n, m, first, second, data;
-    std::cin >> n >> m;
-    std::vector<std::vector<std::pair<int64_t, int>>> graph(n,
+void dijkstra(const std::vector<std::vector<int>> &init_information) {
+
+    std::vector<std::vector<std::pair<int64_t, int>>> graph(init_information.size(),
                                                             std::vector<std::pair<int64_t, int>>());
 
-    for (int j = 0; j < m; ++j) {
-        std::cin >> first >> second >> data;
-        graph[first].push_back({data, second});
+
+    for (int i = 0; i < init_information.size(); ++i) {
+        for (int j = 0; j < init_information[i].size(); ++j) {
+            int price = rand() % 10 + 1;
+            graph[i].push_back({price, init_information[i][j]});
+            graph[init_information[i][j]].push_back({price, i});
+        }
     }
 
-    int start = 0;
+    int start = starter;
 
-    std::vector<int64_t> distance(n, INT64_MAX);
+    std::vector<int64_t> distance(init_information.size(), INT64_MAX);
     distance[start] = 0;
     std::set<std::pair<int64_t, int>> queue;
     queue.insert({distance[start], start});
@@ -50,36 +55,39 @@ void dijkstra(std::vector<std::vector<int>> &init_information) {
         }
     }
 
-    for (size_t i = 1; i < distance.size(); ++i) {
-        std::cout << distance[i] << '\n';
-    }
 }
 
-void BellmanFord(std::vector<std::vector<int>> &init_information) {
+void BellmanFord(const std::vector<std::vector<int>> &init_information) {
     // вспомогательные функции и данные для Беллмана-Форда
     std::vector<std::pair<int64_t, std::pair<int, int>>> graph;
-    int n, m, first, second, cost;
-    std::cin >> n >> m;
-    std::vector<int64_t> distance(n, INT64_MAX);
-    std::vector<bool> used(n);
-    std::vector<std::vector<int>> graph_jjj(n);
-    std::vector<bool> cycle(n, false);
-    distance[0] = 0;
 
-    for (int i = 0; i < m; ++i) {
-        std::cin >> first >> second >> cost;
-        graph.push_back({cost, {first, second}});
-        graph_jjj[first].push_back(second);
+    std::vector<int64_t> distance(init_information.size(), INT64_MAX);
+    std::vector<bool> used(init_information.size());
+    std::vector<std::vector<int>> graph_jjj(init_information.size());
+    std::vector<bool> cycle(init_information.size(), false);
+    distance[starter] = starter;
+
+    int m = 0;
+    for (int i = 0; i < init_information.size(); ++i) {
+        for (int j = 0; j < init_information[i].size(); ++j) {
+            int price = rand() % 10 + 1;
+            graph.push_back({price, {i, init_information[i][j]}});
+            graph_jjj[i].push_back(init_information[i][j]);
+            graph.push_back({price, {init_information[i][j], i}});
+            graph_jjj[init_information[i][j]].push_back(i);
+            ++m;
+        }
     }
 
+
     bool negative = false;
-    for (int j = 0; j <= n; ++j) {
+    for (int j = 0; j <= init_information.size(); ++j) {
         bool indicate = false;
         for (int i = 0; i < m; ++i) {
             if (distance[graph[i].second.first] < INT64_MAX) {
                 if (distance[graph[i].second.second] >
                     distance[graph[i].second.first] + graph[i].first) {
-                    if (j == n) {
+                    if (j == init_information.size()) {
                         cycle[graph[i].second.second] = true;
                         negative = true;
                     }
@@ -93,74 +101,97 @@ void BellmanFord(std::vector<std::vector<int>> &init_information) {
             break;
         }
     }
-    if (negative) {
-        for (int i = 1; i < n; ++i) {
-            if (cycle[i]) {
-                dfs(i, graph_jjj, used);
-            }
-        }
-        for (int i = 1; i < n; ++i) {
-            if (used[i]) {
-                std::cout << "-inf" << '\n';
-            } else {
-                std::cout << distance[i] << '\n';
-            }
-        }
-
-    } else {
-        for (int i = 1; i < n; ++i) {
-            std::cout << distance[i] << '\n';
-        }
-    }
 }
 
-void FloydWarshall(std::vector<std::vector<int>> &init_information) {
-    int n, m, first, second, data;
-    std::cin >> n >> m;
-    std::vector<std::vector<int64_t>> graph(n, std::vector<int64_t>(n, INT64_MAX));
+void FloydWarshall(const std::vector<std::vector<int>> &init_information) {
 
-    for (int j = 0; j < m; ++j) {
-        std::cin >> first >> second >> data;
-        graph[first][second] = data;
+    std::vector<std::vector<int64_t>> graph(init_information.size(),
+                                            std::vector<int64_t>(init_information.size(), INT64_MAX));
+
+    for (int i = 0; i < init_information.size(); ++i) {
+        for (int j = 0; j < init_information[i].size(); ++j) {
+            int price = rand() % 10 + 1;
+            graph[i][init_information[i][j]] = price;
+            graph[init_information[i][j]][i] = price;
+        }
     }
-    for (int i = 0; i < n; ++i) {
+
+    for (int i = 0; i < graph.size(); ++i) {
         graph[i][i] = 0;
     }
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            for (int s = 0; s < n; ++s) {
+    for (int i = 0; i < graph.size(); ++i) {
+        for (int j = 0; j < graph.size(); ++j) {
+            for (int s = 0; s < graph.size(); ++s) {
                 if (graph[j][i] < INT64_MAX && graph[i][s] < INT64_MAX) {
                     graph[j][s] = std::min(graph[j][s], graph[j][i] + graph[i][s]);
                 }
             }
         }
     }
-
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            if (i != j) {
-                if (graph[i][j] == INT64_MAX) {
-                    graph[i][j] = -1;
-                }
-                std::cout << i << ' ' << j << ' ' << graph[i][j] << '\n';
-            }
-        }
-    }
 }
 
-uint64_t analyse(const std::function<void(std::vector<std::vector<int>>)>&  algo,
-                 int range_og_graph, const std::string& type_of_graph) {
+uint32_t graphGenerator(std::vector<std::vector<int>> &reference, int graph_size, const std::string &type_of_graph) {
+
+    if (type_of_graph == "Tree graph") {
+        for (int i = 1; i < graph_size; ++i) {
+            reference[0].push_back(i);
+            reference[i].push_back(0);
+        }
+        return graph_size - 1;
+    }
+
+    if (type_of_graph == "Sparse graph") {
+        int local_size = 0;
+        std::map<std::pair<int, int>, bool> additional;
+        for (int i = 1; i < graph_size; ++i) {
+            reference[0].push_back(i);
+            reference[i].push_back(0);
+            additional[{0, i}] = true;
+            additional[{i, 0}] = true;
+            local_size++;
+        }
+        double k = static_cast<double>(local_size) / ((graph_size * (graph_size - 1)) / 2);
+        while (k < 0.4) {
+            int i, j;
+            i = rand() % graph_size;
+            j = rand() % graph_size;
+            if (additional.find({i, j}) != additional.end()) {
+                reference[i].push_back(j);
+                reference[j].push_back(i);
+                additional[{i, j}] = true;
+                additional[{j, i}] = true;
+                local_size++;
+                k = static_cast<double>(local_size) / ((graph_size * (graph_size - 1)) / 2);
+            }
+        }
+        return local_size;
+    }
+
+    if (type_of_graph == "Complete graph") {
+        for (int i = 0; i < graph_size; ++i) {
+            for (int j = i + 1; j < graph_size; ++j) {
+                reference[i].push_back(j);
+                reference[j].push_back(i);
+            }
+        }
+        return ((graph_size - 1) * graph_size) / 2;
+    }
+    return 0;
+}
+
+uint64_t analyse(const std::function<void(std::vector<std::vector<int>> &)> &algo,
+                 int range_of_graph, std::string &type_of_graph, uint32_t &count_of_edges) {
     uint64_t sum = 0;
 
-    for (int i = 0; i < number_of_launches; ++i) {
-        if (type_of_graph == "binary") {
-            randomChars(reference, 2);
-        } else {
-            randomChars(reference, 4);
-        }
+    // завожу эталонный граф для тестирования алгоритмов
+    std::vector<std::vector<int>> reference_graph(range_of_graph, std::vector<int>());
 
+    // в зависимости от типа генерирую соответсвующий граф
+    count_of_edges = graphGenerator(reference_graph, range_of_graph, type_of_graph);
+
+    for (int i = 0; i < number_of_launches; ++i) {
         auto time_start = std::chrono::high_resolution_clock::now();
-        algo(reference, reference_size, example, indicator);
+        algo(reference_graph);
         auto time_elapsed = std::chrono::high_resolution_clock::now();
         int64_t nanoseconds =
                 std::chrono::duration_cast<std::chrono::nanoseconds>(time_elapsed - time_start).count();
@@ -177,39 +208,34 @@ void printAndAnalyse(
     std::string directory = "/Users/bogdanlukancuk/Desktop/KDZ-3/";
 // открытие и запись в файл для маленьких диапазонов сортировки
     std::ofstream file(directory + "data" + ".csv");
-    file << "algo,graph_type,vertex_size,time\n";
+    file << "algo,graph_type,count_of_edges,count_of_vertex,time\n";
 
 // прохожу по всем видам алгоритмов в цикле
-    for (const auto& algo: searchers) {
-// завожу цикл для заполнения эталлонного массива (reference) значениями
+    for (const auto &algo: searchers) {
+// завожу цикл для генерирования эталлонного графа определенного типа
         for (int marker = 0; marker < 3; marker++) {
-// маркер типа массива
+// маркер типа графа
             std::string type_of_graph;
-            int vertex_size;
             switch (marker) {
-// генерирую массив из 100000 символов  в бинарном алфавите
                 case 0: {
-// случайныe значения в бинарном алфавите 10000 символов
-                    type_of_graph = "binary";
+                    type_of_graph = "Tree graph";
                     break;
                 }
                 case 1: {
-// случайныe значения в бинарном алфавите 100000 символов
-                    type_of_graph = "binary";
+                    type_of_graph = "Sparse graph";
                     break;
                 }
-// генерирую массив из 100000 символов  в небинарном алфавите
                 case 2: {
-// случайныe значения в небинарном алфавите 10000 символов
-                    type_of_graph = "nonbinary";
+                    type_of_graph = "Complete graph";
                     break;
                 }
             }
 
-// функция analyse выдает уредненное значение на заданном диапазоне
+// функция analyse выдает уредненное значение на заданном диапазоне и типе графа
             for (int range_og_graph = 10; range_og_graph <= 1010; range_og_graph += 50) {
-                uint64_t answer = analyse(algo.second, range_og_graph, type_of_graph);
-                file << algo.first << ',' << type_of_graph << ','
+                uint32_t count_of_edges = 0;
+                uint64_t answer = analyse(algo.second, range_og_graph, type_of_graph, count_of_edges);
+                file << algo.first << ',' << type_of_graph << ',' << count_of_edges << ','
                      << range_og_graph << ',' << answer << '\n';
             }
         }
@@ -229,7 +255,7 @@ int main() {
     };
 
     // передаю инициализированнный массив функций в функцию, которая анализирует каждую функцию и
-    // записывает резултат в файл
+    // записывает результат в файл
     printAndAnalyse(searchers);
 
     return 0;
